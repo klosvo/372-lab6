@@ -36,7 +36,6 @@ void StopI2C_Trans() {
 }
 
 
-// Kama - TODO
 /*
 - Write(unsigned char data)
 o Set two wire data register equal to incoming data o Trigger action
@@ -86,7 +85,7 @@ void Read_from(unsigned char SLA, unsigned char MEMADDRESS){
   StopI2C_Trans();
 }
 
- /*
+/*
  - Read_data()
 o Return TWDR
 */ 

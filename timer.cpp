@@ -8,11 +8,11 @@
 
 // WGM bits need to be specified
 // for CTC mode WGM00 = 0, WGM01 = 1, WGM02 = 0
-void initTIMER0(){
-    TCCR0A &= ~( 1 << WGM00);
-    TCCR0A |=  ( 1 << WGM01);
-    TCCR0B &= ~( 1 << WGM02);
-}
+// void initTIMER0(){
+//     TCCR0A &= ~( 1 << WGM00);
+//     TCCR0A |=  ( 1 << WGM01);
+//     TCCR0B &= ~( 1 << WGM02);
+// }
 
 // initialize mode of operation for Timer1 using CTC mode
 // WGM bits are configured such that WGM10 = 0, WGM11 = 0, WGM12 = 1, WGM13
@@ -25,35 +25,35 @@ void initTIMER1() {
 // function delayuS0 (value)
 // this is for a microsecond based delay using CTC mode
 // can create a delay up to 250 us
-void delayuS0(int value){
+// void delayuS0(int value){
 
-    // set TCNT0 = 0
-    TCNT0 = 0;
+//     // set TCNT0 = 0
+//     TCNT0 = 0;
 
-    // set outout compare value
-    // we used the formula OCR0A = [Td * fclk]/ PS
-    // using a PS = 8, Td = 1us fclk = 16MHz.
-    // OCR1A = 2  - 1 to acccount for starting at bit 0.
-    // if we want to pass a value called delay then we can set OCR0A = 1 * delay
-    // andthat should allow values in us to be delayed by the right time up to at least 250us.
-    OCR0A = 1 * value;
+//     // set outout compare value
+//     // we used the formula OCR0A = [Td * fclk]/ PS
+//     // using a PS = 8, Td = 1us fclk = 16MHz.
+//     // OCR1A = 2  - 1 to acccount for starting at bit 0.
+//     // if we want to pass a value called delay then we can set OCR0A = 1 * delay
+//     // andthat should allow values in us to be delayed by the right time up to at least 250us.
+//     OCR0A = 1 * value;
 
-    // set output compare flag  TIFR0 down by writing a logic 1
-    TIFR0 |= (1 << OCF0A);
+//     // set output compare flag  TIFR0 down by writing a logic 1
+//     TIFR0 |= (1 << OCF0A);
 
-    // turn on clock with the CS bits and start counting
-    // Use Prescaler of 8 (2 counts is  1 us)
-    TCCR0B |= (1 << CS01);
-    TCCR0B &= ~((1 << CS02)| (1 << CS00));
+//     // turn on clock with the CS bits and start counting
+//     // Use Prescaler of 8 (2 counts is  1 us)
+//     TCCR0B |= (1 << CS01);
+//     TCCR0B &= ~((1 << CS02)| (1 << CS00));
 
-    // poll the flag OCF0A bit to see when it is raised
-    // while the flag bit OCF0A is down, do nothing
-    while (( TIFR0 & ( 1 << OCF0A)) == 0) ;
+//     // poll the flag OCF0A bit to see when it is raised
+//     // while the flag bit OCF0A is down, do nothing
+//     while (( TIFR0 & ( 1 << OCF0A)) == 0) ;
 
-    // turn off clock
-    TCCR0B &= ~( ( 1 << CS02) | ( 1 << CS01) | (1 << CS00));
-    return;
-}
+//     // turn off clock
+//     TCCR0B &= ~( ( 1 << CS02) | ( 1 << CS01) | (1 << CS00));
+//     return;
+// }
 
 
 

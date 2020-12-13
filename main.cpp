@@ -6,6 +6,8 @@
 #include <avr/io.h>
 #include "Arduino.h"
 
+//#define PI 3.14159265
+
 // define statements for i2c/accelerometer
 // addresses in hexidecimal
 #define SLA 0x68
@@ -18,21 +20,21 @@
 #define SL_Z_HI 0x3F
 #define SL_Z_LO 0x40
 
-
+// SPI Register Address Map
 #define DECODE_MODE 0x09
 #define INTENSITY 0x0A // brightness control
 #define SCAN_LIMIT 0x0B
 #define SHUTDOWN 0x0C
 #define DISPLAY_TEST 0x0F
 
-#define ROW_0 0x01
-#define ROW_1 0x02
-#define ROW_2 0x03
-#define ROW_3 0x04
-#define ROW_4 0x05
-#define ROW_5 0x06
-#define ROW_6 0x07
-#define ROW_7 0x08
+#define ROW_1 0x01
+#define ROW_2 0x02
+#define ROW_3 0x03
+#define ROW_4 0x04
+#define ROW_5 0x05
+#define ROW_6 0x06
+#define ROW_7 0x07
+#define ROW_8 0x08
 
 // unsigned char POWER_CTL = 0x2d; // Power Control Register
 // unsigned char DATA_FORMAT = 0x31; // Data Format Register
@@ -52,7 +54,7 @@ typedef enum stateType_enum{
 volatile stateType current_state = wait_press;  // sets to initila mode wait_press
 
 
-// Four states for switch used in the state machine for debounce
+// Four states for switch used in the state machine for angle threshold
 typedef enum accState_enum{
     above_threshold, below_threshold
 } accState;
@@ -64,52 +66,55 @@ volatile accState acc_state = below_threshold;  // sets to initila mode wait_pre
 
 int main() {
 
+    Serial.begin(9600); // using serial port to print values from I2C bus
+    sei();
+
+    // define local variables used for position
     signed int x, y, z;
-    signed int angle_xy, angle_yz, angle_zx;
+    double angle_xy, angle_yz, angle_zx;
     x = 0;
     y = 0;
     z = 0;
-    angle_xy = 0;
-    angle_yz = 0;
-    angle_zx = 0;
-    bool onOff = true;
-
-    Serial.begin(9600); // using serial port to print values from I2C bus
+    angle_xy = 0.0;
+    angle_yz = 0.0;
+    angle_zx = 0.0;
+    // bool onOff = true;
+    
     initTIMER1();
-    initSwitchPD0();
+    // initSwitchPD0();
     initSwitchPB3();
     initI2C();  // initialize I2C and set bit rate
-    SPI_MASTER_Init();
-    sei(); 
+    
 
+    StartI2C_Trans(SLA); //need slave address here
+    
+    write(PWR_MGMT); // sla for pwr mgmt
+    write(WAKEUP); // wakeup device from sleep mode
+    StopI2C_Trans();
+    
+    
+    SPI_MASTER_Init(); 
     // initialize 8 x 8 LED array
-    write_execute(INTENSITY, 0x08); // brightness control
-    write_execute(SCAN_LIMIT, 0x07); // display everything/all rows // scan all rows and columns
-    write_execute(SHUTDOWN, 0x01); // set shutdown register to normal operation
-    write_execute(DISPLAY_TEST, 0x00); // display test register set to normal operation
-
+    write_execute(INTENSITY, 0x08);     // brightness control
+    write_execute(SCAN_LIMIT, 0x07);    // display everything/all rows // scan all rows and columns
+    write_execute(SHUTDOWN, 0x01);      // set shutdown register to normal operation
+    write_execute(DISPLAY_TEST, 0x00);  // display test register set to normal operation
+    
 
     // write_execute(DATA_FORMAT, 0x00);
     // write_execute(POWER_CTL, 0x31);
 
-    StartI2C_Trans(SLA); //need slave address here
-
-    write(PWR_MGMT); // sla for pwr mgmt
-    write(WAKEUP); // wakeup device from sleep mode
-
-    StopI2C_Trans();
-
         
     while (1) {
-
+    // Serial.println("Got to here 0");
         Read_from(SLA, SL_X_HI);
         x = Read_data();
 
         Read_from(SLA, SL_X_LO);
         x = (x << 8) | Read_data();
 
-        Serial.print("X = ");
-        Serial.println(x);
+        // Serial.print("X = ");
+        // Serial.println(x);
 
         Read_from(SLA, SL_Y_HI);
         y = Read_data();
@@ -117,8 +122,8 @@ int main() {
         Read_from(SLA, SL_Y_LO);
         y = (y << 8) | Read_data();
 
-        Serial.print("Y = ");
-        Serial.println(y);
+        // Serial.print("Y = ");
+        // Serial.println(y);
 
         Read_from(SLA, SL_Z_HI);
         z = Read_data();
@@ -126,20 +131,29 @@ int main() {
         Read_from(SLA, SL_Z_LO);
         z = (z << 8) | Read_data();
 
-        Serial.print("Z = ");
-        Serial.println(z);
+        // Serial.print("Z = ");
+        // Serial.println(z);
 
         StopI2C_Trans();
+        angle_xy = (180.0/PI) * tan((double)x / (double)y);
+        angle_yz = (180.0/PI) * tan((double)y / (double)z);
+        angle_zx = (180.0/PI) * tan((double)z / (double)x);
+        // Serial.print("angle xy = ");
+        // Serial.println(angle_xy);
+        // Serial.print("angle yz = ");
+        // Serial.println(angle_yz);
+        // Serial.print("angle zx = ");
+        // Serial.println(angle_zx);
 
-        angle_xy = (int)tan(x/y);
-        angle_yz = (int)tan(y/z);
-        angle_zx = (int)tan(z/x);
 
-        if((angle_xy > 45) | (angle_yz > 45) | (angle_zx >45)){
+
+        if((angle_xy > 45.0) | (angle_yz > 45.0) | (angle_zx > 45.0)){
             acc_state = above_threshold;
+       //     Serial.println("Got to here 3");
         }
         else{
             acc_state = below_threshold;
+       //     Serial.println("Got to here 4");
         }
 
 
@@ -147,64 +161,65 @@ int main() {
         // Implement a state machine in the while loop which achieves the assignment
         switch(acc_state){
             case below_threshold:
+            Serial.println(":)");
                 // LED SMILEY :)
-                write_execute(ROW_0, 0b00111100); // write row 1
-                write_execute(ROW_1, 0b0100010); // write row 2
-                write_execute(ROW_2, 0b10100101); // write row 3
-                write_execute(ROW_3, 0b10000001); // write row 4
-                write_execute(ROW_4, 0b10100101); // write row 5
-                write_execute(ROW_5, 0b10011001); // write row 6
-                write_execute(ROW_6, 0b01000010); // write row 7
-                write_execute(ROW_7, 0b00111100); // write row 8
+                write_execute(ROW_1, 0b00111100);   // write row 1
+                write_execute(ROW_2, 0b01000010);    // write row 2
+                write_execute(ROW_3, 0b10100101);   // write row 3
+                write_execute(ROW_4, 0b10000001);   // write row 4
+                write_execute(ROW_5, 0b10100101);   // write row 5
+                write_execute(ROW_6, 0b10011001);   // write row 6
+                write_execute(ROW_7, 0b01000010);   // write row 7
+                write_execute(ROW_8, 0b00111100);   // write row 8
 
-                _delay_ms(1000);
+                // delayMs(1000);
             break;
             case above_threshold:
+            Serial.println(":(");
                 // LED FROWN :(
-                write_execute(ROW_0, 0b00111100); // write row 1
-                write_execute(ROW_1, 0b0100010); // write row 2
-                write_execute(ROW_2, 0b10100101); // write row 3
-                write_execute(ROW_3, 0b10000001); // write row 4
-                write_execute(ROW_4, 0b10011001); // write row 5
-                write_execute(ROW_5, 0b10100101); // write row 6
-                write_execute(ROW_6, 0b01000010); // write row 7
-                write_execute(ROW_7, 0b00111100); // write row 8
+                write_execute(ROW_1, 0b00111100);   // write row 1
+                write_execute(ROW_2, 0b01000010);    // write row 2
+                write_execute(ROW_3, 0b10100101);   // write row 3
+                write_execute(ROW_4, 0b10000001);   // write row 4
+                write_execute(ROW_5, 0b10011001);   // write row 5
+                write_execute(ROW_6, 0b10100101);   // write row 6
+                write_execute(ROW_7, 0b01000010);   // write row 7
+                write_execute(ROW_8, 0b00111100);   // write row 8
+                // delayMs(1000);
+                // delayMs(1000);
 
                 // need buzzer alarm to sound
                 //IncFrequency(2000);
                 for(int i = 800; i < 5000; i++){
+                //    Serial.println("Got to alarm");
                     IncFrequency(i);
                 }
             break;
         }
-        // if(onOff){ 
-        //     valueADC = 550;
-        // }
-        // SetMOTORspeed(valueADC);
-
-
+        // Serial.println("Got to here 6");
 
         // Implement a state machine in the while loop which achieves the assignment
         switch(current_state){
             case wait_press:
+                // Serial.println("Got to here wait-press");
                 break;
             case debounce_press: 
+                // Serial.println("Got to debounce press");
                 //delayS(1);
                  delayMs(100);
                 current_state = wait_release;
                 break;
             case wait_release: 
+                // Serial.println("Got to wait release");
                 break;
             case debounce_release:
                 // delayMs(1);
+                // Serial.println("Got to debounce release");
                  delayMs(100);
                 current_state = wait_press;
                 break;
         }
-        // if(onOff){ 
-        //     valueADC = 550;
-        // }
-        // SetMOTORspeed(valueADC);
+        // Serial.println("Got to here end");
 
     }
 

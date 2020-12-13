@@ -7,6 +7,6 @@
 #define SWITCH_H
 
 void initSwitchPB3();
-void initSwitchPD0();
+// void initSwitchPD0();
 
 #endif
