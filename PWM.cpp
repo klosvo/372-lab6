@@ -27,12 +27,26 @@ void initPWM(){
 
 // generate variable frequency
 void IncFrequency( unsigned int frequency){
+    // Using Timer 4
+    // PWM frequency Calculation for FAST PWM mode (page 148 datasheet)
+    // frequency of PWM = (F_clk) / (Prescaler * (1 + TOP))
+    // F_clk = 16 MHz
+    // Prescaler = 1
+    // TOP Value = ICRN = variable passed - 1
     
     ICR4 = 16000000/(frequency) - 1;
 
+
+    // Prescaler Bits for Prescaler of 1 (table 17-6 datasheet)
+    // CS40 = 1, CS41 = 0, CS42 = 0
     TCCR4B |= (1 << CS40);
     TCCR4B &= ~((1 << CS41) | (1 << CS42));
 
+    // Set Duty Cycle
+    // duty cycle = OCR4A/(1 + TOP)
+    // TOP = 1 + ICR4
+    // OCR4A = output compare value = OCR4A = duty cycle * (1 + TOP)
+    // We use an 80% duty cycle
     OCR4A = 0.8 * frequency;
 
 
@@ -45,37 +59,37 @@ void IncFrequency( unsigned int frequency){
 }
 
 //Set motor speed and direction with count registers using information obtained by ADC 
-void SetMOTORspeed(double result) {
-    // the last thing is to set the duty cycle.     
-    // duty cycle is set by dividing output compare OCR4A value by 1 + TOP value
-    // the top value is (1 + 0x3FF) = 1024
-    // calculate OCR4A value => OCR4A = duty cycle(fractional number) * (1 + TOP) 
-    // we want a duty cycle varies based on voltage variable result
-    // OCR1A = 0.60 * 1024
+// void SetMOTORspeed(double result) {
+//     // the last thing is to set the duty cycle.     
+//     // duty cycle is set by dividing output compare OCR4A value by 1 + TOP value
+//     // the top value is (1 + 0x3FF) = 1024
+//     // calculate OCR4A value => OCR4A = duty cycle(fractional number) * (1 + TOP) 
+//     // we want a duty cycle varies based on voltage variable result
+//     // OCR1A = 0.60 * 1024
 
 
- //convert result into a voltage for this to not change
+//  //convert result into a voltage for this to not change
 
 
-    if(result < 2.3){
-        // set duty cycle
-        // Tpulse/Tperiod = OCRnx/TOP
-        // duty cycle varies based on voltage variable result
-        // 0x3FF/4
+//     if(result < 2.3){
+//         // set duty cycle
+//         // Tpulse/Tperiod = OCRnx/TOP
+//         // duty cycle varies based on voltage variable result
+//         // 0x3FF/4
 
-        OCR3A = result * 0x400;
-        OCR4A = 0;
+//         OCR3A = result * 0x400;
+//         OCR4A = 0;
 
-    }else if (result > 2.7){
-        // set duty cycle
-        // Tpulse/Tperiod = OCRnx/TOP
-        // duty cycle of 25%
-        // 0x3FF/4
-        OCR4A = result * 0x400;
-        OCR3A = 0;
-    } else{
-         OCR3A = 0;
-         OCR4A = 0;
-    }
+//     }else if (result > 2.7){
+//         // set duty cycle
+//         // Tpulse/Tperiod = OCRnx/TOP
+//         // duty cycle of 25%
+//         // 0x3FF/4
+//         OCR4A = result * 0x400;
+//         OCR3A = 0;
+//     } else{
+//          OCR3A = 0;
+//          OCR4A = 0;
+//     }
 
-}
+// }

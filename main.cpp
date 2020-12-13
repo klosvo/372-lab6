@@ -65,9 +65,13 @@ volatile accState acc_state = below_threshold;  // sets to initila mode wait_pre
 int main() {
 
     signed int x, y, z;
+    signed int angle_xy, angle_yz, angle_zx;
     x = 0;
     y = 0;
     z = 0;
+    angle_xy = 0;
+    angle_yz = 0;
+    angle_zx = 0;
     bool onOff = true;
 
     Serial.begin(9600); // using serial port to print values from I2C bus
@@ -127,6 +131,17 @@ int main() {
 
         StopI2C_Trans();
 
+        angle_xy = (int)tan(x/y);
+        angle_yz = (int)tan(y/z);
+        angle_zx = (int)tan(z/x);
+
+        if((angle_xy > 45) | (angle_yz > 45) | (angle_zx >45)){
+            acc_state = above_threshold;
+        }
+        else{
+            acc_state = below_threshold;
+        }
+
 
 
         // Implement a state machine in the while loop which achieves the assignment
@@ -145,8 +160,6 @@ int main() {
                 _delay_ms(1000);
             break;
             case above_threshold:
-                // need buzzer alarm to sound
-                IncFrequency(2000);
                 // LED FROWN :(
                 write_execute(ROW_0, 0b00111100); // write row 1
                 write_execute(ROW_1, 0b0100010); // write row 2
@@ -156,6 +169,12 @@ int main() {
                 write_execute(ROW_5, 0b10100101); // write row 6
                 write_execute(ROW_6, 0b01000010); // write row 7
                 write_execute(ROW_7, 0b00111100); // write row 8
+
+                // need buzzer alarm to sound
+                //IncFrequency(2000);
+                for(int i = 800; i < 5000; i++){
+                    IncFrequency(i);
+                }
             break;
         }
         // if(onOff){ 
@@ -220,11 +239,11 @@ ISR(PCINT0_vect){
      
     // if the PCINT was triggered for release (was in the wait_release state)
     else if (current_state == wait_release){
-        for(int i = 800; i < 5000; i++){
+
+        // if the alarm is on, turn it off
+        if(acc_state == above_threshold){
             IncFrequency(0);
         }
-        
-        
         // // check for LED_Speed setting and toggle to other speed setting
         // if (led_speed == 2){
         //     led_speed = 1;
