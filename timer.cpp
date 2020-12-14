@@ -10,7 +10,7 @@
 
 /* Initialize timer 1, you should not turn the timer on here. Use CTC mode  .*/
 void initTimer1(){
-	// Set timer1 to CTC Mode
+    // Set timer1 to CTC Mode
     TCCR1A &= ~(1<<WGM10);
     TCCR1A &= ~(1<<WGM11);
     TCCR1B |= (1<<WGM12);
