@@ -25,7 +25,7 @@ void initTimer1(){
     OCR1A = 250;
 }
 
-/* This delays the program an amount of microseconds specified by unsigned int delay.
+/* This delays the program an amount of milliseconds specified by unsigned int delay.
 */
 void delayMs(unsigned int delay){
     // Set flag down
