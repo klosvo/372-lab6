@@ -71,18 +71,24 @@ int main() {
 
     // define local variables used for position
     signed int x, y, z;
-    double angle_xy, angle_yz, angle_zx;
+    double angle_about_z, angle_about_y, new_angle_z, new_angle_y, rot_delta_z, rot_delta_y;
     x = 0;
     y = 0;
     z = 0;
-    angle_xy = 0.0;
-    angle_yz = 0.0;
-    angle_zx = 0.0;
+    angle_about_z = 0.0;
+    // angle_yz = 0.0;
+    angle_about_y = 0.0;
+    new_angle_z = 0.0;
+    new_angle_y = 0.0;
+    rot_delta_z = 0.0;
+    rot_delta_y = 0.0;
+
+
     // bool onOff = true;
     
     initTIMER1();
     // initSwitchPD0();
-    initSwitchPB3();
+    initSwitchPB5();
     initI2C();  // initialize I2C and set bit rate
     
 
@@ -135,9 +141,14 @@ int main() {
         // Serial.println(z);
 
         StopI2C_Trans();
-        angle_xy = (180.0/PI) * tan((double)x / (double)y);
-        angle_yz = (180.0/PI) * tan((double)y / (double)z);
-        angle_zx = (180.0/PI) * tan((double)z / (double)x);
+        new_angle_z = (180.0/PI) * tan((double)y / (double)x);
+        new_angle_y = (180.0/PI) * tan((double)z / (double)x);
+
+        rot_delta_y = abs(new_angle_y - angle_about_y);
+        rot_delta_z = abs(new_angle_z - angle_about_z);
+        angle_about_z = new_angle_z;
+        // angle_yz = (180.0/PI) * tan((double)y / (double)z);
+        angle_about_y = new_angle_y;
         // Serial.print("angle xy = ");
         // Serial.println(angle_xy);
         // Serial.print("angle yz = ");
@@ -147,13 +158,12 @@ int main() {
 
 
 
-        if((angle_xy > 45.0) | (angle_yz > 45.0) | (angle_zx > 45.0)){
+       // if((angle_xy > 45.0) | (angle_yz > 45.0) | (angle_zx > 45.0)){
+        if((rot_delta_y > 45.0) | (rot_delta_z > 45.0)){    
             acc_state = above_threshold;
-       //     Serial.println("Got to here 3");
         }
         else{
             acc_state = below_threshold;
-       //     Serial.println("Got to here 4");
         }
 
 
@@ -161,7 +171,7 @@ int main() {
         // Implement a state machine in the while loop which achieves the assignment
         switch(acc_state){
             case below_threshold:
-            Serial.println(":)");
+            // Serial.println(":)");
                 // LED SMILEY :)
                 write_execute(ROW_1, 0b00111100);   // write row 1
                 write_execute(ROW_2, 0b01000010);    // write row 2
@@ -171,11 +181,9 @@ int main() {
                 write_execute(ROW_6, 0b10011001);   // write row 6
                 write_execute(ROW_7, 0b01000010);   // write row 7
                 write_execute(ROW_8, 0b00111100);   // write row 8
-
-                // delayMs(1000);
             break;
             case above_threshold:
-            Serial.println(":(");
+            // Serial.println(":(");
                 // LED FROWN :(
                 write_execute(ROW_1, 0b00111100);   // write row 1
                 write_execute(ROW_2, 0b01000010);    // write row 2
@@ -185,15 +193,15 @@ int main() {
                 write_execute(ROW_6, 0b10100101);   // write row 6
                 write_execute(ROW_7, 0b01000010);   // write row 7
                 write_execute(ROW_8, 0b00111100);   // write row 8
-                // delayMs(1000);
-                // delayMs(1000);
 
                 // need buzzer alarm to sound
                 //IncFrequency(2000);
-                for(int i = 800; i < 5000; i++){
-                //    Serial.println("Got to alarm");
-                    IncFrequency(i);
-                }
+                // for(int i = 800; i < 5000; i++){
+                //      Serial.println("Got to alarm");
+                callFrequency(800);
+                  //  IncFrequency(800);
+                //delayMs(1000);
+                // }
             break;
         }
         // Serial.println("Got to here 6");
@@ -245,26 +253,24 @@ int main() {
 */
 
 // ISR for Pin Change Interrupt
-// From table 14.1 vector table: PCINT0 corresponds to pins 0-7
+// From table 14.1 vector table: PCINT0 corresponds to pins 0-7 (used for PCINT5 on B5)
 ISR(PCINT0_vect){
     
     if(current_state == wait_press){        // if the PCINT was triggered by press 
+        // Serial.println("In interrupt = wait_press");
         current_state = debounce_press;     // (was in wait_press state) change state
     }                                       // to debounce_press 
      
     // if the PCINT was triggered for release (was in the wait_release state)
     else if (current_state == wait_release){
-
+        // Serial.println("In interrupt = wait_release");
         // if the alarm is on, turn it off
         if(acc_state == above_threshold){
+            // Serial.println("In interrupt =  acc = above_threshold");
             IncFrequency(0);
+            Serial.println("sending 0 freq");
         }
-        // // check for LED_Speed setting and toggle to other speed setting
-        // if (led_speed == 2){
-        //     led_speed = 1;
-        // } else{
-        //     led_speed = 2;
-        // }
+
         current_state = debounce_release;   // change current_state to debounce_release
     }
 }

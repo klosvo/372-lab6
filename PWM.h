@@ -5,9 +5,9 @@
 
     void initPWM();
 
-    int changeDutyCycle(int dutycycle);
-    void SetMOTORspeed(double result);
+  //  int changeDutyCycle(int dutycycle);
+  //  void SetMOTORspeed(double result);
     void IncFrequency( unsigned int frequency);
-
+    void callFrequency(unsigned int frequency);
 
 #endif

@@ -1,5 +1,7 @@
 
 #include "PWM.h"
+#include <avr/io.h>
+#include "Arduino.h"
 
 void initPWM(){
 
@@ -7,7 +9,7 @@ void initPWM(){
 
     // Pin 8 on board to output (OC4C, PORTH5, PWM)
     // use timer 4 ICR4 for the TOP value to set the frequency and OCR4A as the output compare to set the duty cycle
-    // PWM signal generated onthe pin that corresponds to OCR4A/ Header Pin 6
+    // PWM signal generated on the pin that corresponds to OCR4A/ Header Pin 6
     DDRH |= (1 << DDH3);
 
     // Set non-inverting mode - output starts high and then is low
@@ -21,6 +23,10 @@ void initPWM(){
     TCCR4A &= ~(1 << WGM40);
     TCCR4A |= (1 << WGM41);
     TCCR4B |= (1 << WGM42) | (1 << WGM43);
+    // TCCR4A &= ~(1 << WGM40);
+    // PWM mode 15
+    // TCCR4A |= (1 << WGM40) | (1 << WGM41);
+    // TCCR4B |= (1 << WGM42) | (1 << WGM43);
 
 }
 
@@ -33,7 +39,6 @@ void IncFrequency( unsigned int frequency){
     // F_clk = 16 MHz
     // Prescaler = 1
     // TOP Value = ICRN = variable passed - 1
-    
     ICR4 = 16000000/(frequency) - 1;
 
 
@@ -48,6 +53,7 @@ void IncFrequency( unsigned int frequency){
     // OCR4A = output compare value = OCR4A = duty cycle * (1 + TOP)
     // We use an 80% duty cycle
     OCR4A = 0.8 * frequency;
+    //Serial.println(frequency);
 
 
 
@@ -56,6 +62,14 @@ void IncFrequency( unsigned int frequency){
     // OCR4AL = OCR4A;
     // OCR4CH = OCR4AH >> 1;
     // OCR4CL = OCR4AL >> 1;
+}
+
+void callFrequency(unsigned int frequency){
+    for(int i = 800; i < 5000; i++){
+                //      Serial.println("Got to alarm");
+        IncFrequency(i);
+                    // delayMs(1000);
+    }
 }
 
 //Set motor speed and direction with count registers using information obtained by ADC 
