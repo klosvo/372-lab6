@@ -36,10 +36,7 @@
 #define ROW_7 0x07
 #define ROW_8 0x08
 
-// unsigned char POWER_CTL = 0x2d; // Power Control Register
-// unsigned char DATA_FORMAT = 0x31; // Data Format Register
-
-//Create statemachine for button debouncing
+// Create statemachine for button debouncing
 // When system is on motor will rotate based on potentiometer location 
 // Alarm turns off when button is pushed
 
@@ -71,25 +68,18 @@ int main() {
 
     // define local variables used for position
     signed int x, y, z;
-    double angle_about_z, angle_about_y, new_angle_z, new_angle_y, rot_delta_z, rot_delta_y;
     x = 0;
     y = 0;
     z = 0;
-    angle_about_z = 0.0;
-    // angle_yz = 0.0;
-    angle_about_y = 0.0;
-    new_angle_z = 0.0;
-    new_angle_y = 0.0;
-    rot_delta_z = 0.0;
-    rot_delta_y = 0.0;
-
-
-    // bool onOff = true;
+    bool buzzer;
+    buzzer = 0;
     
     initTIMER1();
+    initPWM();
     // initSwitchPD0();
     initSwitchPB5();
     initI2C();  // initialize I2C and set bit rate
+    
     
 
     StartI2C_Trans(SLA); //need slave address here
@@ -105,10 +95,6 @@ int main() {
     write_execute(SCAN_LIMIT, 0x07);    // display everything/all rows // scan all rows and columns
     write_execute(SHUTDOWN, 0x01);      // set shutdown register to normal operation
     write_execute(DISPLAY_TEST, 0x00);  // display test register set to normal operation
-    
-
-    // write_execute(DATA_FORMAT, 0x00);
-    // write_execute(POWER_CTL, 0x31);
 
         
     while (1) {
@@ -119,8 +105,8 @@ int main() {
         Read_from(SLA, SL_X_LO);
         x = (x << 8) | Read_data();
 
-        // Serial.print("X = ");
-        // Serial.println(x);
+        //  Serial.print("X = ");
+        //  Serial.println(x);
 
         Read_from(SLA, SL_Y_HI);
         y = Read_data();
@@ -128,8 +114,9 @@ int main() {
         Read_from(SLA, SL_Y_LO);
         y = (y << 8) | Read_data();
 
-        // Serial.print("Y = ");
-        // Serial.println(y);
+            //  Serial.print("Y = ");
+            //  Serial.println(y);
+         
 
         Read_from(SLA, SL_Z_HI);
         z = Read_data();
@@ -137,29 +124,14 @@ int main() {
         Read_from(SLA, SL_Z_LO);
         z = (z << 8) | Read_data();
 
-        // Serial.print("Z = ");
-        // Serial.println(z);
+
+            // Serial.print("Z = ");
+            //  Serial.println(z);
+         
 
         StopI2C_Trans();
-        new_angle_z = (180.0/PI) * tan((double)y / (double)x);
-        new_angle_y = (180.0/PI) * tan((double)z / (double)x);
 
-        rot_delta_y = abs(new_angle_y - angle_about_y);
-        rot_delta_z = abs(new_angle_z - angle_about_z);
-        angle_about_z = new_angle_z;
-        // angle_yz = (180.0/PI) * tan((double)y / (double)z);
-        angle_about_y = new_angle_y;
-        // Serial.print("angle xy = ");
-        // Serial.println(angle_xy);
-        // Serial.print("angle yz = ");
-        // Serial.println(angle_yz);
-        // Serial.print("angle zx = ");
-        // Serial.println(angle_zx);
-
-
-
-       // if((angle_xy > 45.0) | (angle_yz > 45.0) | (angle_zx > 45.0)){
-        if((rot_delta_y > 45.0) | (rot_delta_z > 45.0)){    
+        if( ((y > 500) /* && (y < 10000)*/) | (z > 10000)){    
             acc_state = above_threshold;
         }
         else{
@@ -184,6 +156,9 @@ int main() {
             break;
             case above_threshold:
             // Serial.println(":(");
+                buzzer = 1;
+                BuzzerOn();
+                
                 // LED FROWN :(
                 write_execute(ROW_1, 0b00111100);   // write row 1
                 write_execute(ROW_2, 0b01000010);    // write row 2
@@ -193,58 +168,32 @@ int main() {
                 write_execute(ROW_6, 0b10100101);   // write row 6
                 write_execute(ROW_7, 0b01000010);   // write row 7
                 write_execute(ROW_8, 0b00111100);   // write row 8
-
-                // need buzzer alarm to sound
-                //IncFrequency(2000);
-                // for(int i = 800; i < 5000; i++){
-                //      Serial.println("Got to alarm");
-                callFrequency(800);
-                  //  IncFrequency(800);
-                //delayMs(1000);
-                // }
             break;
         }
-        // Serial.println("Got to here 6");
+
+        if(buzzer) BuzzerOn();
 
         // Implement a state machine in the while loop which achieves the assignment
         switch(current_state){
             case wait_press:
-                // Serial.println("Got to here wait-press");
                 break;
             case debounce_press: 
-                // Serial.println("Got to debounce press");
-                //delayS(1);
-                 delayMs(100);
+                buzzer = 0;
+                BuzzerOff();
                 current_state = wait_release;
                 break;
             case wait_release: 
-                // Serial.println("Got to wait release");
                 break;
             case debounce_release:
-                // delayMs(1);
-                // Serial.println("Got to debounce release");
-                 delayMs(100);
                 current_state = wait_press;
                 break;
         }
-        // Serial.println("Got to here end");
-
     }
 
     return 0;
 
 }
 
-
-// // Establish ISR using external interput on PORTD
-//   ISR(INT0_vect){
-//     if(state == wait_press){//code to change state based on current state
-//         state = dbpress;
-//     }
-//     if(state == waitrelease){
-//         state = dbrelease;
-//     }
-// } 
 
 /* Implement a Pin Change Interrupt which handles the switch being
 * pressed and released. When the switch is pressed and released, the LEDs
@@ -257,20 +206,12 @@ int main() {
 ISR(PCINT0_vect){
     
     if(current_state == wait_press){        // if the PCINT was triggered by press 
-        // Serial.println("In interrupt = wait_press");
         current_state = debounce_press;     // (was in wait_press state) change state
     }                                       // to debounce_press 
      
     // if the PCINT was triggered for release (was in the wait_release state)
     else if (current_state == wait_release){
-        // Serial.println("In interrupt = wait_release");
-        // if the alarm is on, turn it off
-        if(acc_state == above_threshold){
-            // Serial.println("In interrupt =  acc = above_threshold");
-            IncFrequency(0);
-            Serial.println("sending 0 freq");
-        }
-
+        BuzzerOff();
         current_state = debounce_release;   // change current_state to debounce_release
     }
 }

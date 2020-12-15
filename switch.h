@@ -6,7 +6,6 @@
 #ifndef SWITCH_H
 #define SWITCH_H
 
-void initSwitchPB5();
-// void initSwitchPD0();
+    void initSwitchPB5();
 
 #endif

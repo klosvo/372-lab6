@@ -67,10 +67,6 @@ void SPI_MASTER_Init() {
     // DORD determines whether MSB (if writing/ microcontroller is master) or LSB (microcontroller is slave) is sent first
     // MSTR determines whether SPI module is in slave or master mode
     // CPOL - Clock polarity
-
-    // need spie here?? ^
-
-
 }
 
 void write_execute(unsigned char CMD, unsigned char data) {
